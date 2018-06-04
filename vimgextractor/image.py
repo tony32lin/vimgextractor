@@ -3,7 +3,7 @@ from vimgextractor.squarecam import SquareCam
 
 IMAGE_SHAPES = {"VTS":(54,54)}
 TEL_NUM_PIXELS_OVER_SAMPLED = {"VTS":2916}
-TEL_NUM_PIXELS = {"VTS":500}
+TEL_NUM_PIXELS = {"VTS":499}
 
 class TraceConverter:
     def __init__(self,img_dtypes,pixvar_length,img_dim_order='channels_last'):

@@ -13,5 +13,7 @@ setup(
     entry_points='''
         [console_scripts]
         extractImgFromVEGAS_St2=vimgextractor.script.convert:cli 
-    '''
+    ''',
+    include_package_data=True
+    
 )

@@ -13,7 +13,9 @@ import numpy as np
 import vimgextractor.row_types as row_types
 import vimgextractor.image as image 
 from vimgextractor.vegas_io import VARootFile 
+import os.path as path
 
+data_dir = path.dirname(__file__)+'/data/'
 logger = logging.getLogger(__name__)
 
 class ImageExtractor:
@@ -104,27 +106,45 @@ class ImageExtractor:
 
             descr = tel_table.description._v_colobjects
             descr2 = descr.copy()
+            if(self.one_D_image_oversampled):            
+                logger.debug('Save dummy pixel pos')
+                descr2["pixel_pos"] = tables.Float32Col(shape=(2, 54*54))
 
-            descr2["pixel_pos"] = tables.Float32Col(shape=(2, 54*54))
+                tel_table2 = f.create_table(f.root, 'temp', descr2, "Table of telescope data")
+                tel_table.attrs._f_copy(tel_table2)
+                tel_table.remove()
+                tel_table2.move(f.root, 'Telescope_Info')
 
-            tel_table2 = f.create_table(f.root, 'temp', descr2, "Table of telescope data")
-            tel_table.attrs._f_copy(tel_table2)
-            tel_table.remove()
-            tel_table2.move(f.root, 'Telescope_Info')
+                tel_row = tel_table2.row
 
-            tel_row = tel_table2.row
+                # add units to table attributes
+                random_tel_type = "VTS" 
+                random_tel_id = 0 
+                tel_table2.attrs.tel_pos_units = str("aru")
+                tel_row['tel_type'] = "VTS"
+                posx,posy  = np.meshgrid(np.arange(0,54,dtype='float32'),np.arange(0,54,dtype='float32'))
+                
+                tel_row['pixel_pos'] = [posx.ravel(),posy.ravel()] 
+                tel_row.append()
+            else:             
+                logger.debug('Save real pixel pos')
+                descr2["pixel_pos"] = tables.Float32Col(shape=(2,499))
 
-            # add units to table attributes
-            random_tel_type = "VTS" 
-            random_tel_id = 0 
-            tel_table2.attrs.tel_pos_units = str("aru")
-            tel_row['tel_type'] = "VTS"
-            posx,posy  = np.meshgrid(np.arange(0,54,dtype='float32'),np.arange(0,54,dtype='float32'))
-            
-            tel_row['pixel_pos'] = [posx.ravel(),posy.ravel()] 
-            tel_row.append()
-            
-        
+                tel_table2 = f.create_table(f.root, 'temp', descr2, "Table of telescope data")
+                tel_table.attrs._f_copy(tel_table2)
+                tel_table.remove()
+                tel_table2.move(f.root, 'Telescope_Info')
+
+                tel_row = tel_table2.row
+
+                # add units to table attributes
+                random_tel_type = "VTS" 
+                random_tel_id = 0 
+                tel_table2.attrs.tel_pos_units = str("mm")
+                tel_row['tel_type'] = "VTS"
+                pos = np.loadtxt(data_dir + '/pixel_position.txt' )
+                tel_row['pixel_pos'] = [pos[:,0],pos[:,1]] 
+                tel_row.append()       
         
         #create event table
         if not f.__contains__('/Event_Info'):
@@ -272,8 +292,8 @@ class ImageExtractor:
                                 image_row['image_charge']     = imgs.reshape(array_shape).copy() 
                                 image_row['image_peak_times'] = time_imgs.reshape(array_shape).copy() 
                             else:
-                                image_row['image_charge']     =  pixel_vector.copy() 
-                                image_row['image_peak_times'] =  timing_vector.copy() 
+                                image_row['image_charge']     =  pixel_vector[:499].copy() 
+                                image_row['image_peak_times'] =  timing_vector[:499].copy() 
            
                         image_row["event_index"] = event_index
 
