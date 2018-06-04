@@ -86,6 +86,7 @@ class VARootFile:
         
         try:
             allCharge = np.zeros((4, 500))
+            allTZero  = np.zeros((4, 500))
         except MemoryError:
             logger.error("Large number of events caused a MemoryError... "
                   "Let's try passing start_event and stop_event or evtlist to analyze a smaller set of events.")
@@ -635,7 +636,10 @@ class VARootFile:
                       chanID = CD.fChanID
                       charge = CD.fCharge
                       SNR    = CD.fSignalToNoise
+                      TZero  = CD.fTZero
+
                       allCharge[telID][chanID] = charge 
+                      allTZero[telID][chanID]  = TZero
                       snrStorage[chanID] = SNR
                       if cleaning is not None:
                         if SNR < cleaning['brd']:
@@ -651,7 +655,8 @@ class VARootFile:
                              break
                         if not passed:
                           allCharge[telID][chanID] = 0  
-                            
+                          allTZero[telID][chanID]  = -1
+      
                     # Average over neighboring pixels for L2-masked pixels
                     if maskL2:
                       for l2chan in l2channels[telID]: 
@@ -659,7 +664,7 @@ class VARootFile:
                              allCharge[telID][l2chan] = np.mean(allCharge[telID,neighbor_dict[l2chan]])
                 evtNums = calibEvtData.fArrayEventNum
                 triggeredTels = self.__get_triggered_tel__(calibEvtData.fL2TriggeredTels)
-                yield evtNums,simData,allCharge,triggeredTels
+                yield evtNums,simData,allCharge,allTZero,triggeredTels
                 evt_count += 1 
             except Exception as e:
                 logger.debug('Something wrong with event: {}'.format(evt))

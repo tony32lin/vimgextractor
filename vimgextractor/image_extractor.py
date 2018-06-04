@@ -27,7 +27,7 @@ class ImageExtractor:
                  storage_mode='tel_type',
                  img_mode='1D',
                  img_dim_order='channels_last',
-                 force_all_telescopes=False,is_gamma=True):
+                 force_all_telescopes=False,is_gamma=True,one_D_image_oversampled=False):
         if os.path.isdir(os.path.dirname(output_path)):
             self.output_path = output_path
         else:
@@ -55,6 +55,7 @@ class ImageExtractor:
             )
         self.force_all_telescopes  = force_all_telescopes
         self.is_gamma    = is_gamma
+        self.one_D_image_oversampled = one_D_image_oversampled
     def select_telescopes(self,data_file):
         """
         dummy method for getting telescope type for now. 
@@ -165,10 +166,12 @@ class ImageExtractor:
                 np_type = np.dtype((np.dtype(self.img_dtypes[tel_type]), array_shape))
                 columns_dict = {"image":tables.Col.from_dtype(np_type),"event_index":tables.Int32Col()}
             elif self.img_mode == '1D':
-                array_shape = (self.TEL_NUM_PIXELS[tel_type],)  
+                array_shape = (image.TEL_NUM_PIXELS_OVER_SAMPLED[tel_type],) if self.one_D_image_oversampled else (image.TEL_NUM_PIXELS[tel_type],) 
                 np_type = np.dtype((np.dtype(self.img_dtypes[tel_type]), array_shape))
 
-                columns_dict = {"image_charge":tables.Col.from_dtype(np_type),"event_index":tables.Int32Col()}
+                columns_dict = {"image_charge":tables.Col.from_dtype(np_type),
+                                "event_index":tables.Int32Col(),
+                                "image_peak_times":tables.Col.from_dtype(np_type)}
 
             description = type('description', (tables.IsDescription,), columns_dict)
             if self.storage_mode == 'tel_type':
@@ -182,8 +185,9 @@ class ImageExtractor:
                         image_row['image'] =  self.trace_converter.convert(np.zeros(500))  
  
                     elif self.img_mode == '1D':
-                        shape = (image.TEL_NUM_PIXELS[tel_type],) 
+                        shape = (image.TEL_NUM_PIXELS_OVER_SAMPLED[tel_type],) if self.one_D_image_oversampled else (image.TEL_NUM_PIXELS[tel_type],)
                         image_row['image_charge'] = np.zeros(shape,dtype=self.img_dtypes[tel_type])
+                        image_row['image_peak_times'] = np.zeros(shape,dtype=self.img_dtypes[tel_type])
                         image_row['event_index'] = -1
 
                     image_row.append()
@@ -201,8 +205,9 @@ class ImageExtractor:
                             image_row['image'] = self.trace_converter.convert(np.zeros(500))  
                         
                         elif self.img_mode == '1D':
-                            shape = (image.TEL_NUM_PIXELS[tel_type],) 
+                            shape = (image.TEL_NUM_PIXELS_OVER_SAMPLED[tel_type],) if self.one_D_image_oversampled else (image.TEL_NUM_PIXELS[tel_type],)
                             image_row['image_charge'] = np.zeros(shape,dtype=self.img_dtypes[tel_type])
+                            image_row['image_peak_times'] = np.zeros(shape,dtype=self.img_dtypes[tel_type])
                             image_row['event_index'] = -1
 
                         image_row.append()
@@ -219,7 +224,7 @@ class ImageExtractor:
         else:
             source = root_file.read_st2_calib_channel_charge(tels=[ i-1 for i in selected_tels[tel_type]],cleaning=None,stop_event=max_events)   
 
-        for i,simData,event,triggeredTels in source:
+        for i,simData,event,tzero,triggeredTels in source:
             if((max_events is not None) and 
                (event_count > max_events)):
                break
@@ -248,6 +253,7 @@ class ImageExtractor:
 
                     if tel_id in triggeredTels:
                         pixel_vector = event[tel_id -1,:] 
+                        timing_vector = tzero[tel_id -1,:] 
                         logger.debug('Storing image from tel_type {} ({} pixels)'.format(tel_type,len(pixel_vector)))
 
                         if self.storage_mode == 'tel_type':
@@ -256,13 +262,19 @@ class ImageExtractor:
                             table = eval('f.root.T{}'.format(tel_id))
                         next_index = table.nrows
                         image_row = table.row
-                        imgs = self.trace_converter.convert(pixel_vector)
+                        imgs       = self.trace_converter.convert(pixel_vector)
+                        time_imgs  = self.trace_converter.convert(timing_vector)*4  
                         if self.img_mode == '2D':
                             image_row['image'] = imgs  
 
                         elif self.img_mode == '1D':
-                            image_row['image_charge'] = imgs.reshape(array_shape).copy() 
-
+                            if(self.one_D_image_oversampled):
+                                image_row['image_charge']     = imgs.reshape(array_shape).copy() 
+                                image_row['image_peak_times'] = time_imgs.reshape(array_shape).copy() 
+                            else:
+                                image_row['image_charge']     =  pixel_vector.copy() 
+                                image_row['image_peak_times'] =  timing_vector.copy() 
+           
                         image_row["event_index"] = event_index
 
                         image_row.append()
