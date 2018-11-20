@@ -1,15 +1,19 @@
 import numpy as np
 import struct
 import logging
+from vimgextractor.load_vegas import VEGASStatus 
 import ROOT
 
 logger = logging.getLogger(__name__)
 
 # Load VEGAS functions 
-root_load_code = ROOT.gSystem.Load("$VEGAS/common/lib/libSP24sharedLite.so")
+# Depricated
+#root_load_code = ROOT.gSystem.Load("$VEGAS/common/lib/libSP24sharedLite.so")
 
 class VARootFile:
     def __init__(self,f):
+        self.vegas_status = VEGASStatus()
+        self.vegas_status.loadVEGAS()
         self.__root_file__ = ROOT.VARootIO(f, 1)
 
     def get_array_info(self):
@@ -29,6 +33,7 @@ class VARootFile:
             tel_dict['run_array_direction'] = np.array([0,0])
             out[tel.id()+1] = tel_dict
         return out            
+
     def __get_triggered_tel__(self,triggeredTels):
         tt = []
         for i in range(triggeredTels.size()):
@@ -595,9 +600,9 @@ class VARootFile:
                          498: [459, 460, 497]}
         evt_count = 0
 
+        ##### This block need to be changed drastically #####
         simTree = self.__root_file__.loadTheSimulationEventTree()
         elist = self.__get_matched_SimEvtList__(simTree,calibTree,evtlist)
-
 
 
         simData = ROOT.VASimulationData()
@@ -605,7 +610,7 @@ class VARootFile:
 
         calibEvtData = ROOT.VACalibratedArrayEvent()
         calibTree.SetBranchAddress("C", calibEvtData)
-
+        ######################################################
     
         for evt in evtlist:
     

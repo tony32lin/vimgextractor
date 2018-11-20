@@ -316,8 +316,8 @@ class ImageExtractor:
                 event_row['core_y']       = simData.fCoreSouthM*-1 
                 event_row['h_first_int']  = 0 
                 event_row['mc_energy']    = simData.fEnergyGeV/1000. 
-                event_row['alt'] = simData.fPrimaryZenithDeg*np.pi*180. 
-                event_row['az']  = simData.fPrimaryAzimuthDeg*np.pi*180.
+                event_row['alt'] = (90 - simData.fPrimaryZenithDeg)*np.pi/180. 
+                event_row['az']  = simData.fPrimaryAzimuthDeg*np.pi/180.
 
                 event_row.append()
                 table.flush()
