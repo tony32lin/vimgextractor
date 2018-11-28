@@ -37,7 +37,7 @@ class VARootFile:
     def __get_triggered_tel__(self,triggeredTels):
         tt = []
         for i in range(triggeredTels.size()):
-            b = struct.unpack("1B",triggeredTels[i])[0]
+            b = struct.unpack("1B",triggeredTels[i].encode())[0]
             if(b == 1):
                 tt.append(i+1)
         return tt     
@@ -73,8 +73,7 @@ class VARootFile:
     def read_st2_calib_channel_charge(self, tels=[0,1,2,3], maskL2=True, 
                               l2channels=[[110, 249, 255, 404, 475, 499], [128, 173, 259, 498, 499], [37, 159, 319, 451, 499], [99, 214, 333, 499]],
                               start_event=None, stop_event=None, evtlist=None,cleaning={'img':5.0,'brd':2.5}):
-        calib_io = self.__root_file__ 
-        calibTree = calib_io.loadTheCalibratedEventTree()
+        calibTree = self.__root_file__.loadTheCalibratedEventTree()
         if start_event is None:
             start_event = 0
         if stop_event  is None:
@@ -601,27 +600,29 @@ class VARootFile:
         evt_count = 0
 
         ##### This block need to be changed drastically #####
+        logger.debug("Start loading file ...")
         simTree = self.__root_file__.loadTheSimulationEventTree()
-        elist = self.__get_matched_SimEvtList__(simTree,calibTree,evtlist)
+        #elist = self.__get_matched_SimEvtList__(simTree,calibTree,evtlist)
 
 
-        simData = ROOT.VASimulationData()
-        simTree.SetBranchAddress("Sim",simData)    
 
-        calibEvtData = ROOT.VACalibratedArrayEvent()
-        calibTree.SetBranchAddress("C", calibEvtData)
+        #calibEvtData = ROOT.VACalibratedArrayEvent()
+        #calibTree.SetBranchAddress("C", calibEvtData)
+        # Build index
+        simTree.BuildIndex("Sim.fRunNum","Sim.fArrayEventNum")
+        #simData = ROOT.VASimulationData()
+        #simTree.SetBranchAddress("Sim",simData)    
+        index = simTree.GetTreeIndex()
         ######################################################
     
-        for evt in evtlist:
-    
+        #for evt in evtlist:
+        for i in range(calibTree.GetEntries()): 
+            calibTree.GetEntry(i)
+            calibEvtData = calibTree.C
+            logger.debug("At evt {:d}".format(i))            
             try:
-                calibTree.GetEntry(evt)
-            except:
-                logger.error("Can't get calibrated event number {:d}".format(evt))
-                raise
-
-            try:
-                simTree.GetEntry(elist.GetEntry(evt))
+                simTree.GetEntryWithIndex(calibEvtData.fRunNum,calibEvtData.fArrayEventNum)
+                simData      = simTree.Sim 
             except:
                 logger.error("Can't get simulation data number {:d}".format(evt))
                 raise
@@ -640,7 +641,7 @@ class VARootFile:
                     for CD in fChanData_iter :
                       chanID = CD.fChanID
                       charge = CD.fCharge
-                      SNR    = CD.fSignalToNoise
+                      SNR    = CD.fCharge/CD.fPedVar
                       TZero  = CD.fTZero
 
                       allCharge[telID][chanID] = charge 
