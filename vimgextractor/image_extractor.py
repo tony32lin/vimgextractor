@@ -310,14 +310,25 @@ class ImageExtractor:
                     event_row['indices'] = all_tel_index_vector
 
                 event_row['event_number'] = i 
-                event_row['run_number']   = simData.fRunNum 
-                event_row['particle_id']  = simData.fCORSIKAParticleID 
-                event_row['core_x']       = simData.fCoreEastM 
-                event_row['core_y']       = simData.fCoreSouthM*-1 
+                if(simData is not None):
+                    event_row['run_number']   = simData.fRunNum 
+                    event_row['particle_id']  = simData.fCORSIKAParticleID 
+                    event_row['core_x']       = simData.fCoreEastM 
+                    event_row['core_y']       = simData.fCoreSouthM*-1 
+                    event_row['mc_energy']    = simData.fEnergyGeV/1000. 
+                    event_row['alt'] = (90 - simData.fPrimaryZenithDeg)*np.pi/180. 
+                    event_row['az']  = simData.fPrimaryAzimuthDeg*np.pi/180.
+
+                else:
+                    event_row['run_number']   = 0 
+                    event_row['particle_id']  = 0 
+                    event_row['core_x']       = 0 
+                    event_row['core_y']       = 0 
+                    event_row['mc_energy']    = 0 
+                    event_row['alt'] = 0 
+                    event_row['az']  = 0 
+
                 event_row['h_first_int']  = 0 
-                event_row['mc_energy']    = simData.fEnergyGeV/1000. 
-                event_row['alt'] = (90 - simData.fPrimaryZenithDeg)*np.pi/180. 
-                event_row['az']  = simData.fPrimaryAzimuthDeg*np.pi/180.
 
                 event_row.append()
                 table.flush()

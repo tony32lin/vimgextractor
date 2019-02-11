@@ -609,10 +609,13 @@ class VARootFile:
         #calibEvtData = ROOT.VACalibratedArrayEvent()
         #calibTree.SetBranchAddress("C", calibEvtData)
         # Build index
-        simTree.BuildIndex("Sim.fRunNum","Sim.fArrayEventNum")
-        #simData = ROOT.VASimulationData()
-        #simTree.SetBranchAddress("Sim",simData)    
-        index = simTree.GetTreeIndex()
+        if(simTree != None):        
+            simTree.BuildIndex("Sim.fRunNum","Sim.fArrayEventNum")
+            #simData = ROOT.VASimulationData()
+            #simTree.SetBranchAddress("Sim",simData)    
+            index = simTree.GetTreeIndex()
+        else:
+            simData = None
         ######################################################
     
         #for evt in evtlist:
@@ -620,12 +623,13 @@ class VARootFile:
             calibTree.GetEntry(i)
             calibEvtData = calibTree.C
             logger.debug("At evt {:d}".format(i))            
-            try:
-                simTree.GetEntryWithIndex(calibEvtData.fRunNum,calibEvtData.fArrayEventNum)
-                simData      = simTree.Sim 
-            except:
-                logger.error("Can't get simulation data number {:d}".format(evt))
-                raise
+            if(simTree != None):
+                try:
+                    simTree.GetEntryWithIndex(calibEvtData.fRunNum,calibEvtData.fArrayEventNum)
+                    simData      = simTree.Sim 
+                except:
+                    logger.error("Can't get simulation data number {:d}".format(evt))
+                    raise
 
             #evtNum.append(int(calibEvtData.fArrayEventNum))
             try: 
