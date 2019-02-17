@@ -677,7 +677,7 @@ class VARootFile:
                 yield evtNums,simData,allCharge,allTZero,triggeredTels
                 evt_count += 1 
             except Exception as e:
-                logger.debug('Something wrong with event: {}'.format(evt))
+                logger.debug('Something wrong with event: {}'.format(i))
                 raise e
                 pass
 
