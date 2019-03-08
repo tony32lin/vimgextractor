@@ -639,7 +639,11 @@ class VARootFile:
                      
                     snrStorage.fill(0.0)
                     brd_candidate_index = np.array([],dtype=int)
-                    fChanData = calibEvtData.fTelEvents.at(telID).fChanData
+                    try:
+                        fChanData = calibEvtData.fTelEvents.at(telID).fChanData
+                    except:
+                        logger.debug('Cannot load data from Tel: {:d}'.format(telID))
+                        continue
                     fChanData_iter = ( fChanData.at(i) for i in range(fChanData.size() )) 
                     # Save Charge to numpy array
                     for CD in fChanData_iter :
